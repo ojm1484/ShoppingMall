@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.3.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+
+	<!-- 스프링 데이터베이스 연동관련 -->
+	<jee:jndi-lookup
+		id="dataSource"
+		resource-ref="true"
+		 jndi-name="java:comp/env/jdbc/mysql"/>
+		 
+	<!-- 사용하려는 persistence 관련 기술(mybaits, spring jdbc, hibername, JPA)에 따라  -->
+	<bean class="org.springframework.jdbc.datasource.DataSourceTransactionManager" 
+		id="transactionManager" 
+		p:dataSource-ref="dataSource"/>
+		
+	<!-- mybatis spring 을 사용하는 경우 SqlSessionFactoryBean 등록 -->
+	<bean id="sqlSessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean" 
+		p:dataSource-ref="dataSource"
+		p:configLocation="classpath:com/koreait/shoppingmall/mybatis/config.xml"/>
+		
+	<bean class="org.mybatis.spring.SqlSessionTemplate" id="sqlSessionTemplate">
+		<constructor-arg index="0" ref="sqlSessionFactoryBean"/>
+	</bean>
+	
+	<!-- Root Context: defines shared resources visible to all other web components -->
+	<!-- 웹사이트에서 공통으로 사용할 빈들을 여기에 하자 @service, @repository...  -->
+	<context:component-scan base-package="com.koreait.shoppingmall.model"/>		
+
+	<!-- 해시값 변환 빈 등록 -->
+	<bean class="com.koreait.shoppingmall.util.HashBuilder" id="hashBuilder"/>
+	
+	
+	<!-- jacksonbinder 자바 객체와 json간의 변환을 자동으로 처리해주는 컨버터 등록 -->
+	<bean id="mappingJackson2HttpMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+		<property name="supportedMediaTypes">
+			<value>
+				application/json;charset=utf-8
+				text/html;charset=utf-8
+			</value>
+		</property>
+	</bean>
+	
+	<!-- adopter 등록 -->
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+		<property name="messageConverters">
+			<list value-type="java.util.ArrayList">
+				<ref bean="mappingJackson2HttpMessageConverter"/>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 트랜젝션 설정 xml에 설정하는것을 가리켜 선언적 설정이라고 한다.-->
+	<!-- 개발자 대신 트랜잭션(관련 기술에 알맞게)을 처리해주는 트랜젝션 매니저 관점을 두자 -->
+<!-- 	
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="regist" propagation="REQUIRED"/>
+		</tx:attributes>
+	</tx:advice>
+	어느지점에서 감지할건데?
+	<aop:config>
+		<aop:pointcut expression="execution(public * com.koreait.shoppingmall.model..*Service.*(..))" id="serviceCut"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="serviceCut"/>		
+	</aop:config>
+	 -->
+</beans>
+
+
+
+
+
+
+
+
+

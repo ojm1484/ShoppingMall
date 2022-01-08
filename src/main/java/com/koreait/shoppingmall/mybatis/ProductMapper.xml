@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Product">
+
+		<!-- 자동매핑이 아닌 개발자의 임의적 매핑을 시도하려할 때 사용하는 태그 -->
+	<resultMap type="Product" id="JoinCategoryProduct">
+		<id column="product_id" 				property="product_id"/>
+		<result column="product_name" 	property="product_name"/>
+		<result column="price" 					property="price"/>
+		<result column="introduce" 			property="introduce"/>
+		<result column="detail" 					property="detail"/>
+		<!-- 
+		<result column="category_id" 		property="category.category_id"/>
+		<result column="category_name" 	property="category.category_name"/>
+		<result column="team" 					property="category.team"/>
+		<result column="step" 					property="category.step"/>
+		<result column="depth" 				property="category.depth"/>
+		 -->
+		 <!-- 이미 카테고리매퍼에서 카테고리 한건을 담는 기능이 구현되어 있으므로 기존의 매퍼들을 최대한 활용해보자 -->
+		 <association column="category_id" property="category" javaType="Category" select="Category.select"/>
+	</resultMap>
+	
+	<sql id="selectAllCommon">
+		select product_id, product_name, price, introduce, detail,
+		c.category_id as category_id, category_name, team, step, depth 
+		from category c, product p
+		where c.category_id=p.category_id
+	</sql>
+	
+
+	<select id="selectAll" resultMap="JoinCategoryProduct">
+	<!-- Product의 멤버변수 중 category관련된 멤버변수는 category_id 가 아니기 때문에 아래의 컬럼명과 java ProductDTO의
+			자동 매핑이 이루어 질 수 없다. 해결책으로는 자동이 안되므로 수동으로 해결해야 한다. -->		
+		<include refid="selectAllCommon"/>
+	</select>
+	
+	<select id="selectAllbyCategory" parameterType="int" resultMap="JoinCategoryProduct">
+		<include refid="selectAllCommon"/>
+		and p.category_id=#{category_id}
+	</select>
+	
+	<select id="select" parameterType="int" resultType="Product">
+		select * from product where product_id=#{product_id}
+	</select>
+	
+	<insert id="insert" parameterType="Product">
+		insert into product(category_id, product_name, price, introduce, detail)
+		values(#{category.category_id},#{product_name},#{price},#{introduce},#{detail})
+		
+		<selectKey keyColumn="product_id" order="AFTER" resultType="int" keyProperty="product_id">
+			select last_insert_id() as product_id
+		</selectKey>
+	</insert>
+	
+	<update id="update" parameterType="Product">
+		update product set category_id=#{category.category_id}, product_name=#{product_name}, price=#{price}
+		, introduce=#{introduce}, detail=#{detail} 
+		where product_id=#{product_id}
+	</update>
+	
+	<delete id="delete">
+		delete from product where product_id=#{product_id}
+	</delete>
+
+	
+</mapper>
